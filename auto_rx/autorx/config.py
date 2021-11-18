@@ -653,8 +653,8 @@ def read_auto_rx_config(filename, no_sdr_test=False):
             auto_rx_config["experimental_decoders"]["MK2LMS"] = False
 
         # If we are being called as part of a unit test, just return the config now.
-        if no_sdr_test:
-            return auto_rx_config
+        #if no_sdr_test: 
+        #    return auto_rx_config
 
         # Now we attempt to read in the individual SDR parameters.
         auto_rx_config["sdr_settings"] = {}
@@ -674,8 +674,7 @@ def read_auto_rx_config(filename, no_sdr_test=False):
                     return None
 
                 # See if the SDR exists.
-                _sdr_valid = rtlsdr_test(_device_idx)
-                if _sdr_valid:
+                if no_sdr_test: 
                     auto_rx_config["sdr_settings"][_device_idx] = {
                         "ppm": _ppm,
                         "gain": _gain,
@@ -683,9 +682,19 @@ def read_auto_rx_config(filename, no_sdr_test=False):
                         "in_use": False,
                         "task": None,
                     }
-                    logging.info("Config - Tested SDR #%s OK" % _device_idx)
                 else:
-                    logging.warning("Config - SDR #%s invalid." % _device_idx)
+                    _sdr_valid = rtlsdr_test(_device_idx)
+                    if _sdr_valid:
+                        auto_rx_config["sdr_settings"][_device_idx] = {
+                            "ppm": _ppm,
+                            "gain": _gain,
+                            "bias": _bias,
+                            "in_use": False,
+                            "task": None,
+                        }
+                        logging.info("Config - Tested SDR #%s OK" % _device_idx)
+                    else:
+                        logging.warning("Config - SDR #%s invalid." % _device_idx)
             except Exception as e:
                 logging.error(
                     "Config - Error parsing SDR %d config - %s" % (_n, str(e))

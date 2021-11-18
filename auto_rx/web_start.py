@@ -492,13 +492,13 @@ def main():
 
     # Attempt to read in config file
     logging.info("Reading configuration file...")
-    _temp_cfg = read_auto_rx_config(args.config)
+    _temp_cfg = read_auto_rx_config(args.config,no_sdr_test=True)
     if _temp_cfg is None:
         logging.critical("Error in configuration file! Exiting...")
         sys.exit(1)
     else:
         config = _temp_cfg
-        autorx.sdr_list = config["sdr_settings"]
+        #autorx.sdr_list = config["sdr_settings"]
 
     # Check all the RS utilities exist.
     if not check_rs_utils():

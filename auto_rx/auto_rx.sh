@@ -20,18 +20,18 @@ killall screen
 
 #echo $$; echo $BASHPID
 
-id=`ps -ef | grep web_start | grep python | awk '{print $2}'`
-if [ $id ] 
-then
-    kill -SIGINT $id
-fi 
-
 id=`ps -ef | grep auto_rx | grep python | awk '{print $2}'`
 if [ $id ] 
 then
     kill -SIGINT $id
     sleep 30
-fi 
+fi
+
+id=`ps -ef | grep web_start | grep python | awk '{print $2}'`
+if [ $id ] 
+then
+    kill -SIGINT $id
+fi  
 
 # change into appropriate directory
 cd $(dirname $0)
