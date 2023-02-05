@@ -750,8 +750,9 @@ def read_auto_rx_config(filename, no_sdr_test=False):
 
 
         # If we are being called as part of a unit test, just return the config now.
-        #if no_sdr_test: 
-        #    return auto_rx_config
+        if no_sdr_test: 
+            global_config = copy.deepcopy(auto_rx_config)
+            return auto_rx_config
 
         # Now we enumerate our SDRs.
         auto_rx_config["sdr_settings"] = {}

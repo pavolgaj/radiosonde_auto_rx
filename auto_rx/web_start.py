@@ -17,6 +17,7 @@ import time
 import traceback
 import os
 from dateutil.parser import parse
+from queue import Queue
 
 if sys.version_info < (3, 6):
     print("CRITICAL - radiosonde_auto_rx requires Python 3.6 or newer!")
@@ -47,13 +48,7 @@ from autorx.web import (
     WebExporter,
 )
 from autorx.gpsd import GPSDAdaptor
-
-try:
-    # Python 2
-    from Queue import Queue
-except ImportError:
-    # Python 3
-    from queue import Queue
+from autorx.sdr_wrappers import shutdown_sdr
 
 
 # Logging level
@@ -223,7 +218,7 @@ def telemetry_filter(telemetry):
     if "sats" in telemetry:
         if telemetry["sats"] < 4:
             logging.warning(
-                "Sonde %s can only see %d SVs - discarding position as bad."
+                "Sonde %s can only see %d GNSS sats - discarding position as bad."
                 % (telemetry["id"], telemetry["sats"])
             )
             return False
@@ -304,7 +299,7 @@ def telemetry_filter(telemetry):
 
     # Check Meisei sonde callsigns for validity.
     # meisei_ims returns a callsign of IMS100-xxxxxx until it receives the serial number, so we filter based on the x's being present or not.
-    if "MEISEI" in telemetry["type"]:
+    if "MEISEI" in telemetry["type"] or "IMS100" in telemetry["type"] or "RS11G" in telemetry["type"]:
         meisei_callsign_valid = "x" not in _serial.split("-")[1]
     else:
         meisei_callsign_valid = False
@@ -314,7 +309,7 @@ def telemetry_filter(telemetry):
     else:
         mrz_callsign_valid = False
 
-    # If Vaisala or DFMs, check the callsigns are valid. If M10, iMet or LMS6, just pass it through - we get callsigns immediately and reliably from these.
+    # If Vaisala or DFMs, check the callsigns are valid. If M10/M20, iMet, MTS01 or LMS6, just pass it through - we get callsigns immediately and reliably from these.
     if (
         vaisala_callsign_valid
         or dfm_callsign_valid
@@ -324,6 +319,7 @@ def telemetry_filter(telemetry):
         or ("M20" in telemetry["type"])
         or ("LMS" in telemetry["type"])
         or ("IMET" in telemetry["type"])
+        or ("MTS01" in telemetry["type"])
     ):
         return "OK"
     else:
@@ -457,6 +453,8 @@ def main():
     _log_suffix = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S_system.log")
     _log_path = os.path.join(logging_path, _log_suffix)
 
+    system_log_enabled = False
+
     if args.systemlog:
         # Only write out a logs to a system log file if we have been asked to.
         # Systemd will capture and logrotate our logs anyway, so writing to our own log file is less useful.
@@ -471,6 +469,7 @@ def main():
         stdout_handler = logging.StreamHandler(sys.stdout)
         stdout_handler.setFormatter(stdout_format)
         logging.getLogger().addHandler(stdout_handler)
+        system_log_enabled = True
     else:
         # Otherwise, we only need the stdout logger, which if we don't specify a filename to logging.basicConfig,
         # is the default...
@@ -478,9 +477,6 @@ def main():
             format="%(asctime)s %(levelname)s:%(message)s", level=logging_level
         )
 
-    # Add the web interface logging handler.
-    web_handler = WebHandler()
-    logging.getLogger().addHandler(web_handler)
 
     # Set the requests/socketio loggers (and related) to only display critical log messages.
     logging.getLogger("requests").setLevel(logging.CRITICAL)
@@ -530,6 +526,7 @@ def main():
             mail_from=config["email_from"],
             mail_to=config["email_to"],
             mail_subject=config["email_subject"],
+            mail_nearby_landing_subject=config["email_nearby_landing_subject"],
             station_position=(
                 config["station_lat"],
                 config["station_lon"],
