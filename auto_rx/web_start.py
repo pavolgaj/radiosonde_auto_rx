@@ -497,7 +497,7 @@ def main():
         #autorx.sdr_list = config["sdr_settings"]
 
     # Check all the RS utilities exist.
-    if not check_rs_utils():
+    if not check_rs_utils(config):
         sys.exit(1)
 
     # If a sonde type has been provided, insert an entry into the scan results,
