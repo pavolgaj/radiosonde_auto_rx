@@ -38,9 +38,6 @@ fi
 # change into appropriate directory
 cd $(dirname $0)
 
-# Clean up old files
-rm log_power*.csv
-
 # Start auto_rx process with a 3 hour timeout.
 # auto_rx will exit after this time.
 
